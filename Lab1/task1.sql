@@ -208,39 +208,53 @@ select s.КодовыйНомерПредмета from subject s
     where sg.НазваниеГруппы = 'АС-8';
 
 \echo 23 -- Получить номера студенческих групп, которые изучают те же предметы, что и студенческая группа АС-8.
-with as8subj as (
+with as8_subj as (
         select distinct КодовыйНомерПредмета from teacher_student_group tsg
 	    inner join student_group sg on sg.КодовыйНомерГруппы = tsg.КодовыйНомерГруппы
 	    where sg.НазваниеГруппы = 'АС-8'
-    ), having_as8s as (
-        select tsg.КодовыйНомерГруппы, КодовыйНомерПредмета from teacher_student_group tsg
-            inner join student_group sg on tsg.КодовыйНомерГруппы = sg.КодовыйНомерГруппы
-            where НазваниеГруппы != 'АС-8'
-	    and КодовыйНомерПредмета in (select * from as8subj)
     )
-select distinct КодовыйНомерГруппы from having_as8s g
-    group by КодовыйНомерГруппы
-    having count(distinct КодовыйНомерПредмета) = (
-        select count(*) from as8subj
+select distinct tsg.КодовыйНомерГруппы from teacher_student_group tsg
+    inner join student_group sg on tsg.КодовыйНомерГруппы = sg.КодовыйНомерГруппы
+    where НазваниеГруппы != 'АС-8'
+    and КодовыйНомерПредмета in (select * from as8_subj)
+    group by tsg.КодовыйНомерГруппы
+    having count(distinct КодовыйНомерПредмета) >= (
+        select count(*) from as8_subj
     );
 
 \echo 24 -- Получить номера студенческих групп, которые не изучают предметы, преподаваемых в студенческой группе АС-8.
-
-with as8subj as (
+with as8_subj as (
         select distinct КодовыйНомерПредмета from teacher_student_group tsg
 	    inner join student_group sg on sg.КодовыйНомерГруппы = tsg.КодовыйНомерГруппы
 	    where sg.НазваниеГруппы = 'АС-8'
-    ), having_as8s as (
-        select tsg.КодовыйНомерГруппы, КодовыйНомерПредмета from teacher_student_group tsg
-            inner join student_group sg on tsg.КодовыйНомерГруппы = sg.КодовыйНомерГруппы
-            where НазваниеГруппы != 'АС-8'
-	    and КодовыйНомерПредмета in (select * from as8subj)
     )
-select distinct КодовыйНомерГруппы from having_as8s g
-    group by КодовыйНомерГруппы
-    having count(distinct КодовыйНомерПредмета) = 0;
+select distinct КодовыйНомерГруппы from teacher_student_group
+    where КодовыйНомерГруппы not in (
+        select КодовыйНомерГруппы from teacher_student_group
+	    where КодовыйНомерПредмета in (select * from as8_subj)
+    );
 
 \echo 25 -- Получить номера студенческих групп, которые не изучают предметы, преподаваемых преподавателем 430Л.
+with "430L_subj" as (
+        select distinct КодовыйНомерПредмета from teacher_student_group
+	    where ЛичныйНомер = '430Л'
+    )
+select distinct КодовыйНомерГруппы from teacher_student_group
+    where КодовыйНомерГруппы not in (
+        select КодовыйНомерГруппы from teacher_student_group
+	    where КодовыйНомерПредмета in (select * from "430L_subj")
+    );
+
 
 \echo 26 -- Получить номера преподавателей, работающих с группой Э-15, но не преподающих предмет 12П.
+with teaches_12P as (
+	select distinct ЛичныйНомер from teacher_student_group
+	    where КодовыйНомерПредмета = '12П'
+    )
+select distinct ЛичныйНомер from teacher_student_group
+    where КодовыйНомерГруппы in (
+	select КодовыйНомерГруппы from student_group
+	    where НазваниеГруппы = 'Э-15'
+    )
+    and ЛичныйНомер not in (select * from teaches_12P);
 
