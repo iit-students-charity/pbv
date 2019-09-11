@@ -78,57 +78,72 @@ insert into producer_part_project (П, Д, ПР, S) values
 ('П5', 'Д5', 'ПР4', 400),
 ('П5', 'Д6', 'ПР4', 500);
 
---\echo 26 -- Получить номера проектов, для которых среднее количество поставляемых деталей Д1 больше, чем наибольшее количество любых деталей, поставляемых для проекта ПР1.
---select ПР from producer_part_project ppp 
---    group by ПР, Д
---    having Д = 'Д1'
---    and avg(S) > (
---        select max(S) from producer_part_project where ПР = 'ПР1'
---    );
+\echo 26 -- Получить номера проектов, для которых среднее количество поставляемых деталей Д1 больше, чем наибольшее количество любых деталей, поставляемых для проекта ПР1.
+select ПР from producer_part_project ppp 
+    group by ПР, Д
+    having Д = 'Д1'
+    and avg(S) > (
+        select max(S) from producer_part_project where ПР = 'ПР1'
+    );
 
---\echo 17 -- Для каждой детали, поставляемой для проекта, получить номер детали, номер проекта и соответствующее общее количество.
---select Д, ПР, sum(S) from producer_part_project
---    group by Д, ПР
---    order by Д;
+\echo 17 -- Для каждой детали, поставляемой для проекта, получить номер детали, номер проекта и соответствующее общее количество.
+select Д, ПР, sum(S) from producer_part_project
+    group by Д, ПР
+    order by Д;
 
---\echo 25 -- Получить номера проектов, город которых стоит первым в алфавитном списке городов.
---select distinct first_value(ПР) over(order by Город) ПервыйПроект
---    from project;
+\echo 25 -- Получить номера проектов, город которых стоит первым в алфавитном списке городов.
+select distinct first_value(ПР) over(order by Город) ПервыйПроект
+    from project;
 
---\echo 8 -- Получить все такие тройки "номера поставщиков-номера деталей-номера проектов", для которых никакие из двух выводимых поставщиков, деталей и проектов не размещены в одном городе.
---select distinct П, Д, ПР from producer prd
---    join part prt on prd.Город != prt.Город
---    join project prj on prd.Город != prj.Город and prt.Город != prj.Город;
+\echo 8 -- Получить все такие тройки "номера поставщиков-номера деталей-номера проектов", для которых никакие из двух выводимых поставщиков, деталей и проектов не размещены в одном городе.
+select distinct П, Д, ПР from producer prd
+    join part prt on prd.Город != prt.Город
+    join project prj on prd.Город != prj.Город and prt.Город != prj.Город;
 
---\echo 2 -- Получить полную информацию обо всех проектах в Лондоне.
---select * from project
---    where Город = 'Минск';
+\echo 2 -- Получить полную информацию обо всех проектах в Лондоне.
+select * from project
+    where Город = 'Минск';
 
---\echo 7 -- Получить все такие тройки "номера поставщиков-номера деталей-номера проектов", для которых выводимые поставщик, деталь и проект не размещены в одном городе.
---select П, Д, ПР from producer prd, part prt, project prj
---    where not(prd.Город = prt.Город
---    and prd.Город = prj.Город
---    and prt.Город = prj.Город);
+\echo 7 -- Получить все такие тройки "номера поставщиков-номера деталей-номера проектов", для которых выводимые поставщик, деталь и проект не размещены в одном городе.
+select П, Д, ПР from producer prd, part prt, project prj
+    where not(prd.Город = prt.Город
+    and prd.Город = prj.Город
+    and prt.Город = prj.Город);
 
---\echo 11 -- Получить все пары названий городов, для которых поставщик из первого города обеспечивает проект во втором городе.
---select distinct prd.Город ГородПоставщика, prj.Город ГородПроекта from producer_part_project ppp
---    join producer prd on ppp.П = prd.П
---    join project prj on ppp.ПР = prj.ПР
---    order by prd.Город;
+\echo 11 -- Получить все пары названий городов, для которых поставщик из первого города обеспечивает проект во втором городе.
+select distinct prd.Город ГородПоставщика, prj.Город ГородПроекта from producer_part_project ppp
+    join producer prd on ppp.П = prd.П
+    join project prj on ppp.ПР = prj.ПР
+    order by prd.Город;
 
 \echo 36 -- Получить все пары номеров поставщиков, скажем, Пx и Пy, такие, что оба эти поставщика поставляют в точности одно и то же множество деталей.
-select distinct p1.П П1, p2.П П2 from producer_part_project p1
-    full join producer_part_project p2 on p1.Д = p2.Д
-    group by П1, П2, 1
-    having bool_and(p1.Д is not null and p2.Д is not null);
 
---\echo 16 -- Получить общее количество деталей Д1, поставляемых поставщиком П1.
---select sum(S) КоличествоДеталейД1 from producer_part_project
---    where Д = 'Д1'
---    and П = 'П1';
+with not_eq as (
+    select distinct p1.П П1, p2.П П2, p1.Д, p2.Д from producer_part_project p1
+        join producer_part_project p2 on p1.Д != p2.Д
+        where (
+            select count(distinct Д) from producer_part_project where П = p1.П
+        ) != (
+            select count(distinct Д) from producer_part_project where П = p2.П
+        )
+        or (
+            select count(Д) from producer_part_project
+                where (Д = p1.Д and П = p2.П)
+                or (Д = p2.Д and П = p1.П)
+        ) = 0
+    )
+select distinct p1.П, p2.П from producer_part_project p1
+    join producer_part_project p2 on p1.П != p2.П
+    where p1.П not in (select П1 from not_eq where П2 = p2.П)
+    and p2.П not in (select П2 from not_eq where П1 = p1.П);
 
---\echo 31 -- Получить номера поставщиков, поставляющих одну и ту же деталь для всех проектов.
---select П ПоставщикиС1Деталью from producer_part_project
---    group by П
---    having count(distinct Д) = 1;
+\echo 16 -- Получить общее количество деталей Д1, поставляемых поставщиком П1.
+select sum(S) КоличествоДеталейД1 from producer_part_project
+    where Д = 'Д1'
+    and П = 'П1';
+
+\echo 31 -- Получить номера поставщиков, поставляющих одну и ту же деталь для всех проектов.
+select П ПоставщикиС1Деталью from producer_part_project
+    group by П
+    having count(distinct Д) = 1;
 
