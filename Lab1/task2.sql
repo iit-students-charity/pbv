@@ -39,7 +39,7 @@ insert into producer (П, ИмяП, Статус, Город) values
 ('П5', 'Крюков', 30, 'Киев');
 insert into part (Д, ИмяД, Цвет, Размер, Город) values
 ('Д1', 'Болт', 'Красный', 12, 'Москва'),
-('Д2', 'Гайка', 'Зеленая', 17, 'Минск'),
+('Д2', 'Гайка', 'Зелёная', 17, 'Минск'),
 ('Д3', 'Диск', 'Черный', 17, 'Вильнюс'),
 ('Д4', 'Диск', 'Черный', 14, 'Москва'),
 ('Д5', 'Корпус', 'Красный', 12, 'Минск'),
@@ -78,6 +78,12 @@ insert into producer_part_project (П, Д, ПР, S) values
 ('П5', 'Д5', 'ПР4', 400),
 ('П5', 'Д6', 'ПР4', 500);
 
+\echo ----SCHEMES----
+select * from producer;
+select * from part;
+select * from project;
+select * from producer_part_project;
+
 \echo 26 -- Получить номера проектов, для которых среднее количество поставляемых деталей Д1 больше, чем наибольшее количество любых деталей, поставляемых для проекта ПР1.
 select ПР from producer_part_project ppp 
     group by ПР, Д
@@ -100,7 +106,7 @@ select distinct П, Д, ПР from producer prd
     join part prt on prd.Город != prt.Город
     join project prj on prd.Город != prj.Город and prt.Город != prj.Город;
 
-\echo 2 -- Получить полную информацию обо всех проектах в Лондоне.
+\echo 2 -- Получить полную информацию обо всех проектах в Минске.
 select * from project
     where Город = 'Минск';
 
@@ -117,7 +123,6 @@ select distinct prd.Город ГородПоставщика, prj.Город Г
     order by prd.Город;
 
 \echo 36 -- Получить все пары номеров поставщиков, скажем, Пx и Пy, такие, что оба эти поставщика поставляют в точности одно и то же множество деталей.
-
 with not_eq as (
     select distinct p1.П П1, p2.П П2, p1.Д, p2.Д from producer_part_project p1
         join producer_part_project p2 on p1.Д != p2.Д
