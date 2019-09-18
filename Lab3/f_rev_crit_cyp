@@ -1,0 +1,3 @@
+match (gg)<-[:is]-(ls)<-[:unesco_ls]-(n)-[:is]->(g)
+where g.name = "Адраджаемая мова" and ls.name = "мова на мяжы знікнення"
+return gg, ls, n, g
